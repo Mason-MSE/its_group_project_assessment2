@@ -1,0 +1,10 @@
+# Reference implementation dependencies for MSE806 Assessment 2.
+# Pinning is intentionally loose so the code runs across common
+# PyTorch installations.
+
+numpy>=1.23
+scipy>=1.9
+pandas>=1.5
+pyyaml>=6.0
+tqdm>=4.60
+torch>=1.13         # required for train.py / demo.py / evaluate.py

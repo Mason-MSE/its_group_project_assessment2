@@ -1,0 +1,48 @@
+# DCRNN + safety layer configuration for METR-LA.
+# The values below reproduce the setup used by Li et al. (2018) for the
+# 5-minute METR-LA sensor network; when running on mock data the seq_len
+# and horizon are respected but batch_size / epochs can be reduced.
+
+data:
+  dataset_name: metr-la
+  num_sensors: 207           # 325 for PEMS-BAY
+  num_features: 2            # speed (mph) + time-of-day embedding
+  seq_len: 12                # 60 min of history at 5-minute steps
+  horizon: 12                # 60 min horizon (also evaluated at 3 / 6 steps)
+  train_ratio: 0.7
+  val_ratio: 0.1
+  test_ratio: 0.2
+  raw_dir: data/raw          # only used when real METR-LA is available
+  adj_sigma: 10.0            # standard deviation for Gaussian kernel
+  adj_threshold: 0.1         # sparsity threshold for adjacency matrix
+
+model:
+  name: dcrnn
+  input_dim: 2
+  output_dim: 1              # predict speed only
+  rnn_units: 64              # smaller than the 64 used in original for mock demo
+  num_rnn_layers: 2
+  max_diffusion_step: 2      # K in bidirectional random walk
+  filter_type: dual_random_walk
+  cl_decay_steps: 2000       # scheduled sampling curriculum
+
+training:
+  batch_size: 64
+  epochs: 100
+  lr: 0.001
+  lr_decay_ratio: 0.5
+  lr_decay_steps: [20, 40, 60]
+  optimizer: adam
+  loss: masked_mae
+  clip_grad_norm: 5.0
+  patience: 10
+  seed: 2026
+
+safety:
+  # weights for the rolling risk index R = w1 dV + w2 CV + w3 neighbour_rate
+  w_speed_drop: 0.5
+  w_variability: 0.2
+  w_neighbourhood: 0.3
+  free_flow_mph: 55.0
+  alert_threshold: 0.6       # R above this triggers an alert
+  lookahead_steps: 3         # emit alert if any of the next 3 steps triggers
