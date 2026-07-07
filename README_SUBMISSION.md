@@ -4,8 +4,10 @@
 **Assessment**: Assessment 2 — Group Project (50% of course grade)
 **Project Title**: Spatio-Temporal Deep Learning for Proactive Traffic Prediction and Safety-Aware Vehicle Management in Urban ITS
 **Student**: Li Qingchao (Master of Software Engineering, Level 9)
-**Student ID**: `[Student ID]` — **please replace this placeholder in all three documents before submission**
+**Student ID**: `[Student ID]` — **please replace this placeholder in the report and PPT before submission**
 **Date**: 2026-07-05
+
+> **Update (unified submission)**: Task A (Proposal, LO3) has been **merged into** the main Report (Task B, LO4). There is now **only one written deliverable** (`02_Report_...docx`), which internally covers Objectives, Technological Innovation and Ethical Considerations previously placed in the standalone Proposal. See §1 and §2 below.
 
 ---
 
@@ -13,9 +15,8 @@
 
 ```
 MSE806_Assessment2/
-├── 01_Proposal_MSE806_A2_LiQingchao.docx        # Task A — Proposal (~887 words)
-├── 02_Report_MSE806_A2_LiQingchao.docx          # Task B — Full report (~2,618 words)
-├── 03_Presentation_MSE806_A2_LiQingchao.pptx    # Presentation slides (15 slides)
+├── 02_Report_MSE806_A2_LiQingchao.docx          # Unified report (Task A + Task B, ~2,907 words)
+├── 03_Presentation_MSE806_A2_LiQingchao.pptx    # Presentation slides (15–17 slides)
 ├── 03_Presentation_MSE806_A2_LiQingchao.pptx.html   # Coze-rendered HTML preview (optional)
 ├── code/                                        # Reference implementation
 │   ├── README.md                                # How to install, train, evaluate, demo
@@ -37,43 +38,62 @@ MSE806_Assessment2/
 │   ├── demo.py                                  # 1-batch forward + safety alert demo
 │   └── sanity_check.py                          # Numpy-only smoke test (no torch needed)
 ├── README_SUBMISSION.md                         # THIS FILE
+├── _intermediate_bak/                           # Backup working files (NOT in zip)
+│   └── 01_Proposal_MSE806_A2_LiQingchao.docx    # Standalone Proposal (kept as fallback)
 └── MSE806_A2_LiQingchao_Submission.zip          # Zipped package for upload
 ```
+
+**Note**: The standalone `01_Proposal_...docx` has been moved to `_intermediate_bak/` and is **not** included in the submission zip. If the marker later requires two separate documents, retrieve it from there — the content has already been re-woven into the main report.
 
 ---
 
 ## 2. Deliverables at a glance
 
-| # | File | Task | Format | Length | Status |
-|---|------|------|--------|--------|--------|
-| 1 | `01_Proposal_MSE806_A2_LiQingchao.docx` | Task A — Proposal | Word (.docx) | 887 words (target 800–1200) | ✅ |
-| 2 | `02_Report_MSE806_A2_LiQingchao.docx` | Task B — Full Report | Word (.docx) | 2,618 words (target 2,500–3,000) | ✅ |
-| 3 | `03_Presentation_MSE806_A2_LiQingchao.pptx` | Presentation | PowerPoint (.pptx) | 15 slides (target 15–18) | ✅ |
-| 4 | `code/` | Code artefact | Python 3.9+ | ~15 modules, sanity-checked | ✅ |
-| 5 | `README_SUBMISSION.md` | Submission notes | Markdown | — | ✅ |
+| # | File | Task Coverage | Format | Length | Status |
+|---|------|---------------|--------|--------|--------|
+| 1 | `02_Report_MSE806_A2_LiQingchao.docx` | **Task A + Task B** (Proposal + Full Report, LO3 + LO4) | Word (.docx) | ~2,907 words (target 2,500–3,000) | ✅ |
+| 2 | `03_Presentation_MSE806_A2_LiQingchao.pptx` | Presentation | PowerPoint (.pptx) | 15–17 slides | ✅ |
+| 3 | `code/` | Code artefact | Python 3.9+ | ~15 modules, sanity-checked | ✅ |
+| 4 | `README_SUBMISSION.md` | Submission notes | Markdown | — | ✅ |
 
 **Formatting compliance**
-- Report: APA 7 in-text citations and reference list; double line-spacing (line = 480); Times New Roman 12 pt.
-- Proposal: matching cover metadata; single reference list at end.
-- All three documents (Proposal / Report / PPT cover) carry the same author/course/date block. **Student ID is a placeholder** — see §5 below.
+- Report: APA 7 in-text citations and reference list; double line-spacing; Times New Roman 12 pt; 15 references.
+- Cover page carries a subtitle line confirming the unified Task A + Task B scope.
+- **Student ID is a placeholder** — see §5 below.
 
 ---
 
-## 3. Report highlights (for the marker)
+## 3. How Task A (Proposal) is covered inside the Report
+
+The merged report keeps the Task B structure and folds the four Proposal elements into these locations:
+
+| Proposal element (Task A / LO3) | Where it now lives in the Report |
+|---|---|
+| Project Title | Cover page + Section 1 (Introduction) |
+| Objectives | Section 1.1 *Project Objectives* — five measurable objectives O1–O5 |
+| Technological Innovation | Section 1 (statement) + Section 3.0 *Technological Innovation Overview* (four-dimension framing) |
+| Ethical Considerations | Section 6 *Ethical Considerations* — Privacy, Algorithmic Fairness, Safety Responsibility, Data Governance & Transparency |
+
+Section numbering: 1 Introduction → 2 Literature Review → 3 Methodology (3.0–3.6) → 4 Results & Analysis → 5 Discussion → 6 Ethical Considerations → 7 Conclusion & Self-Reflection.
+
+---
+
+## 4. Report highlights (for the marker)
 
 - **Problem**: Simultaneous traffic-speed prediction (short-, medium-, long-horizon) and safety-aware vehicle management in urban ITS.
-- **Method**: DCRNN (Li et al., 2018) as the main model; Graph WaveNet (Wu et al., 2019), ST-GCN (Yu et al., 2018) and HA as comparators.
-- **Data**: METR-LA (207 loop sensors, 4 months) + PEMS-BAY (325 sensors, 6 months). **Not re-downloaded** — benchmark numbers are cited verbatim from the original papers (source noted under each table).
-- **Safety framework**: A composite risk score combining predicted speed, forecast deceleration, and downstream congestion propagation, with thresholded advisory outputs (green / amber / red) for a downstream VMS controller.
-- **Contribution**: A single pipeline that couples state-of-the-art spatio-temporal forecasting with an interpretable safety layer, evaluated on the two most widely used ITS benchmarks.
+- **Method**: DCRNN (Li et al., 2018) as the predictive core; Graph WaveNet (Wu et al., 2019) as the ablation baseline; ST-GCN (Yu et al., 2018), LSTM, ARIMA and Historical Average as comparators.
+- **Data**: METR-LA (207 loop sensors) + PEMS-BAY (325 sensors). **Not re-downloaded** — benchmark numbers are cited verbatim from the original papers (source noted under each table).
+- **Safety framework**: A composite risk score combining predicted speed, forecast variability and neighbour coherence, producing advisory outputs 10–15 minutes ahead of an observed collapse.
+- **Ethics**: Privacy-by-design under GDPR; per-sub-region fairness monitoring; calibrated alerts with human-in-the-loop authority; audit-log-backed transparency (IEEE, 2019).
+- **Contribution**: A single unified pipeline that couples SOTA spatio-temporal forecasting with an interpretable safety layer, sitting on the two most widely used ITS benchmarks.
 
 ---
 
-## 4. Reproducing the code artefact
+## 5. Reproducing the code artefact
 
-The code was written to be pedagogically clear and reproducible. It is **not** intended to reach publication-grade results in-notebook; it uses a small mock dataset so that a marker can verify the pipeline end-to-end in seconds.
+The code was written to be pedagogically clear and reproducible. It uses a small mock dataset so that a marker can verify the pipeline end-to-end in seconds.
 
-### 4.1 Numpy-only sanity check (no PyTorch needed)
+### 5.1 Numpy-only sanity check (no PyTorch needed)
 
 ```bash
 cd code
@@ -86,9 +106,7 @@ Expected output includes:
 - Metric helpers unit-tested against hand-computed values.
 - Safety-alert precision / recall = **1.00 / 1.00** on the injected hard-braking scenario, firing on 2 out of 30 sensors.
 
-This is the recommended way to verify the artefact without any extra installs.
-
-### 4.2 Full PyTorch pipeline (optional)
+### 5.2 Full PyTorch pipeline (optional)
 
 ```bash
 cd code
@@ -98,27 +116,25 @@ python3 evaluate.py --config configs/dcrnn_metr_la.yaml
 python3 demo.py     --config configs/dcrnn_metr_la.yaml   # forward pass + safety alert
 ```
 
-If PyTorch is unavailable, `sanity_check.py` still verifies the data pipeline, HA baseline, metrics and safety-alert logic in pure numpy.
-
-### 4.3 Notes on data
-- No real METR-LA / PEMS-BAY archives are shipped or downloaded. `data/mock_data_loader.py` synthesises a deterministic small dataset (with a fixed seed) that matches the shape and statistical profile of METR-LA. Benchmark comparisons in the report cite the published values only.
+### 5.3 Notes on data
+- No real METR-LA / PEMS-BAY archives are shipped or downloaded. `data/mock_data_loader.py` synthesises a deterministic small dataset that matches the shape of METR-LA. Benchmark comparisons in the report cite the published values only.
 
 ---
 
-## 5. Before you submit (action items for the student)
+## 6. Before you submit (action items for the student)
 
-1. **Replace `[Student ID]` in all three documents**:
-   - `01_Proposal_MSE806_A2_LiQingchao.docx` — cover block on page 1.
+1. **Replace `[Student ID]` in the report and PPT**:
    - `02_Report_MSE806_A2_LiQingchao.docx` — cover block on page 1.
    - `03_Presentation_MSE806_A2_LiQingchao.pptx` — slide 1 (Cover).
 2. **Turnitin check** — upload `02_Report_MSE806_A2_LiQingchao.docx` to the course Turnitin dropbox first; expect similarity ≤ 15 %. The text has been written from scratch and reference blocks are formatted so that Turnitin excludes them from similarity when configured.
-3. **Team members** — if this is submitted as a group, add each member's name/ID next to yours on the cover of all three documents.
-4. **Blackboard upload** — attach `MSE806_A2_LiQingchao_Submission.zip` under *Assessment 2 → Group Project*. Some Blackboard sites also require the report and slides as separate attachments; upload the two loose files as well if the dropbox permits.
-5. **Presentation rehearsal** — 15 slides at ≈ 40–60 s each fits the standard 10-minute academic presentation window; longer defences may want to add 2–3 backup slides drawn from the report's Discussion section.
+3. **Team members** — if this is submitted as a group, add each member's name/ID next to yours on the cover of both the report and the slides.
+4. **Blackboard upload** — attach `MSE806_A2_LiQingchao_Submission.zip` under *Assessment 2 → Group Project*. Some Blackboard sites also require the report and slides as separate attachments; upload the two loose files as well if the dropbox permits. **Only three artefacts need to be uploaded: the Report, the PPT and the code zip.**
+5. **If the marker requests separate Task A / Task B files**: the standalone Proposal is preserved at `_intermediate_bak/01_Proposal_MSE806_A2_LiQingchao.docx`. You can rename and submit it alongside the report without any content clash — the two versions carry consistent facts, objectives and references.
+6. **Presentation rehearsal** — 15–17 slides at ≈ 40–60 s each fits the standard 10-minute academic presentation window; longer defences may want to add 2–3 backup slides drawn from the report's Discussion section.
 
 ---
 
-## 6. Assumptions and limitations disclosed to the marker
+## 7. Assumptions and limitations disclosed to the marker
 
 - Benchmark accuracy numbers reported in Tables 1–2 of the report are the **published values** from Li et al. (2018) and Wu et al. (2019); no re-training was performed inside the sandbox. This is stated explicitly under both tables.
 - The safety-alert thresholds in `utils/safety_alert.py` are illustrative defaults; a production system would calibrate them against a labelled incident dataset (e.g., HSIS crash records).
@@ -126,7 +142,7 @@ If PyTorch is unavailable, `sanity_check.py` still verifies the data pipeline, H
 
 ---
 
-## 7. Contact
+## 8. Contact
 
 If the marker needs clarification on any deliverable, please contact:
 
@@ -137,4 +153,4 @@ If the marker needs clarification on any deliverable, please contact:
 
 ---
 
-*Package assembled on 2026-07-05.*
+*Package re-assembled on 2026-07-05 (unified Task A + Task B version).*
