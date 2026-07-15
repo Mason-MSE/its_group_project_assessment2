@@ -32,9 +32,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from data.mock_data_loader import (
     build_mock_dataset,
-    build_features,
+    build_features as build_mock_features,
     make_sequences,
     train_val_test_split,
+)
+from data.real_data_loader import (
+    load_real_dataset,
+    build_features as build_real_features,
+    train_val_test_split as real_split,
+    make_sequences as real_sequences,
 )
 from data.preprocessing import (
     StandardScaler,
@@ -50,29 +56,45 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/dcrnn_metr_la.yaml")
     parser.add_argument("--checkpoint", type=str, default="ckpt/best.pt")
+    parser.add_argument("--dataset", type=str, default="mock",
+                        choices=["mock", "metr-la", "pems-bay"],
+                        help="Dataset to use (mock=synthetic, metr-la, pems-bay).")
     args = parser.parse_args()
 
     with open(args.config, "r") as f:
         cfg = yaml.safe_load(f)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    ds = build_mock_dataset(
-        num_sensors=cfg["data"]["num_sensors"],
-        seed=cfg["training"]["seed"],
-    )
-    features = build_features(ds)
-    _, _, test_f = train_val_test_split(
-        features,
-        (cfg["data"]["train_ratio"], cfg["data"]["val_ratio"], cfg["data"]["test_ratio"]),
-    )
 
-    ckpt = torch.load(args.checkpoint, map_location=device)
-    scaler = StandardScaler(mean=ckpt["scaler_mean"], std=ckpt["scaler_std"])
-    test_scaled = test_f.copy(); test_scaled[..., 0] = scaler.transform(test_f[..., 0])
+    if args.dataset == "mock":
+        ds = build_mock_dataset(
+            num_sensors=cfg["data"]["num_sensors"],
+            seed=cfg["training"]["seed"],
+        )
+        features = build_mock_features(ds)
+        _, _, test_f = train_val_test_split(
+            features,
+            (cfg["data"]["train_ratio"], cfg["data"]["val_ratio"], cfg["data"]["test_ratio"]),
+        )
+        ckpt = torch.load(args.checkpoint, map_location=device)
+        scaler = StandardScaler(mean=ckpt["scaler_mean"], std=ckpt["scaler_std"])
+        test_scaled = test_f.copy(); test_scaled[..., 0] = scaler.transform(test_f[..., 0])
+        x, y = make_sequences(test_scaled, cfg["data"]["seq_len"], cfg["data"]["horizon"])
+        adj = build_adjacency_matrix(ds.distance, sigma=cfg["data"]["adj_sigma"],
+                                      threshold=cfg["data"]["adj_threshold"])
+    else:
+        ds = load_real_dataset(args.dataset, "dataset")
+        features = build_real_features(ds.speed, ds.time_of_day)
+        _, _, test_f = real_split(
+            features,
+            (cfg["data"]["train_ratio"], cfg["data"]["val_ratio"], cfg["data"]["test_ratio"]),
+        )
+        ckpt = torch.load(args.checkpoint, map_location=device)
+        scaler = StandardScaler(mean=ckpt["scaler_mean"], std=ckpt["scaler_std"])
+        test_scaled = test_f.copy(); test_scaled[..., 0] = scaler.transform(test_f[..., 0])
+        x, y = real_sequences(test_scaled, cfg["data"]["seq_len"], cfg["data"]["horizon"])
+        adj = ds.adjacency
 
-    x, y = make_sequences(test_scaled, cfg["data"]["seq_len"], cfg["data"]["horizon"])
-    adj = build_adjacency_matrix(ds.distance, sigma=cfg["data"]["adj_sigma"],
-                                  threshold=cfg["data"]["adj_threshold"])
     fwd, bwd = dual_random_walk_matrices(adj)
     supports = [torch.from_numpy(fwd).to(device), torch.from_numpy(bwd).to(device)]
 

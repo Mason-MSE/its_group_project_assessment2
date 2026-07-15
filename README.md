@@ -15,32 +15,51 @@
 
 ```
 MSE806_Assessment2/
-├── 02_Report_MSE806_A2_LiQingchao.docx          # Unified report (Task A + Task B, ~2,907 words)
-├── 03_Presentation_MSE806_A2_LiQingchao.pptx    # Presentation slides (15–17 slides)
-├── 03_Presentation_MSE806_A2_LiQingchao.pptx.html   # Coze-rendered HTML preview (optional)
-├── code/                                        # Reference implementation
-│   ├── README.md                                # How to install, train, evaluate, demo
-│   ├── requirements.txt                         # Python dependencies
+├── 02_Report_MSE806_A2_LiQingchao.docx                   # Unified report (Task A + Task B, ~2,907 words)
+├── 03_Presentation_MSE806_A2_LiQingchao.pptx             # Presentation slides (15–17 slides)
+├── 03_Presentation_MSE806_A2_LiQingchao.pptx.html        # Coze-rendered HTML preview (optional)
+├── code/                                                 # Reference implementation
+│   ├── README.md                                         # How to install, train, evaluate, demo
+│   ├── requirements.txt                                  # Python dependencies
 │   ├── configs/
-│   │   └── dcrnn_metr_la.yaml                   # DCRNN configuration
+│   │   ├── dcrnn_metr_la.yaml                            # DCRNN configuration (GPU)
+│   │   ├── dcrnn_metr_la_cpu.yaml                        # DCRNN configuration (CPU)
+│   │   └── dcrnn_pems_bay.yaml                           # PEMS-BAY configuration
 │   ├── data/
-│   │   ├── mock_data_loader.py                  # Reproducible mock traffic dataset
-│   │   └── preprocessing.py                     # Sliding-window / z-score utilities
+│   │   ├── mock_data_loader.py                           # Reproducible mock traffic dataset
+│   │   ├── real_data_loader.py                           # Real dataset loader (METR-LA / PEMS-BAY)
+│   │   └── preprocessing.py                              # Sliding-window / z-score utilities
 │   ├── models/
-│   │   ├── dcrnn.py                             # DCRNN encoder–decoder
-│   │   ├── dcrnn_cell.py                        # Diffusion-convolution GRU cell
-│   │   └── baselines.py                         # HA, ARIMA-lite, Graph WaveNet stub
+│   │   ├── dcrnn.py                                      # DCRNN encoder–decoder
+│   │   ├── dcrnn_cell.py                                 # Diffusion-convolution GRU cell
+│   │   └── baselines.py                                  # HA, LSTM baseline
 │   ├── utils/
-│   │   ├── metrics.py                           # MAE / RMSE / MAPE
-│   │   └── safety_alert.py                      # Deceleration-based risk scoring
-│   ├── train.py                                 # End-to-end training loop (PyTorch)
-│   ├── evaluate.py                              # Evaluation on held-out set
-│   ├── demo.py                                  # 1-batch forward + safety alert demo
-│   └── sanity_check.py                          # Numpy-only smoke test (no torch needed)
-├── README_SUBMISSION.md                         # THIS FILE
-├── _intermediate_bak/                           # Backup working files (NOT in zip)
-│   └── 01_Proposal_MSE806_A2_LiQingchao.docx    # Standalone Proposal (kept as fallback)
-└── MSE806_A2_LiQingchao_Submission.zip          # Zipped package for upload
+│   │   ├── metrics.py                                    # MAE / RMSE / MAPE
+│   │   └── safety_alert.py                               # Deceleration-based risk scoring
+│   ├── train.py                                          # End-to-end training loop (PyTorch)
+│   ├── evaluate.py                                       # Evaluation on held-out set
+│   ├── demo.py                                           # 1-batch forward + safety alert demo
+│   ├── sanity_check.py                                   # Numpy-only smoke test (no torch needed)
+│   ├── plot_results.py                                   # Plot basic report figures (fig1–fig7)
+│   └── generate_report_figures.py                        # Plot detailed report figures (6 comprehensive charts)
+├── figures/                                              # Generated report figures
+│   ├── fig1_training_curve.png                           # Training & validation loss curve
+│   ├── fig2_prediction_timeseries.png                    # Predicted vs actual speed time series
+│   ├── fig3_horizon_metrics.png                          # Prediction accuracy by horizon
+│   ├── fig4_scatter_plot.png                             # Predicted vs actual scatter plot
+│   ├── fig5_residual_distribution.png                    # Residual distribution
+│   ├── fig6_risk_heatmap.png                             # Spatial-temporal risk heatmap
+│   ├── fig7_speed_distribution.png                       # Overall speed distribution per sensor
+│   ├── univariate_analysis.png                           # Univariate analysis (6-subplot)
+│   ├── bivariate_analysis.png                            # Bivariate & spatial analysis (6-subplot)
+│   ├── elbow_silhouette.png                              # K-Means clustering: elbow & silhouette (6-subplot)
+│   ├── cluster_pca.png                                   # PCA clustering visualization (6-subplot)
+│   ├── model_comparison.png                              # DCRNN vs HA/LSTM model comparison (6-subplot)
+│   └── residual_analysis.png                             # Extended residual analysis with stats (6-subplot)
+├── README_SUBMISSION.md                                  # THIS FILE
+├── _intermediate_bak/                                    # Backup working files (NOT in zip)
+│   └── 01_Proposal_MSE806_A2_LiQingchao.docx             # Standalone Proposal (kept as fallback)
+└── MSE806_A2_LiQingchao_Submission.zip                   # Zipped package for upload
 ```
 
 **Note**: The standalone `01_Proposal_...docx` has been moved to `_intermediate_bak/` and is **not** included in the submission zip. If the marker later requires two separate documents, retrieve it from there — the content has already been re-woven into the main report.
@@ -82,7 +101,8 @@ Section numbering: 1 Introduction → 2 Literature Review → 3 Methodology (3.0
 
 - **Problem**: Simultaneous traffic-speed prediction (short-, medium-, long-horizon) and safety-aware vehicle management in urban ITS.
 - **Method**: DCRNN (Li et al., 2018) as the predictive core; Graph WaveNet (Wu et al., 2019) as the ablation baseline; ST-GCN (Yu et al., 2018), LSTM, ARIMA and Historical Average as comparators.
-- **Data**: METR-LA (207 loop sensors) + PEMS-BAY (325 sensors). **Not re-downloaded** — benchmark numbers are cited verbatim from the original papers (source noted under each table).
+- **Data**: METR-LA (207 loop sensors) + PEMS-BAY (325 sensors). **Not re-downloaded** — benchmark numbers are cited verbatim from the original papers (source noted under each table). A mock data loader (`data/mock_data_loader.py`) generates synthetic data matching METR-LA shapes for reproducible execution.
+- **Figures**: 13 report-quality figures are pre-generated in `figures/` via two plotting scripts — `plot_results.py` (basic 7 figures) and `generate_report_figures.py` (detailed 6 figures, each a 2×3 subplot composite at 300 DPI).
 - **Safety framework**: A composite risk score combining predicted speed, forecast variability and neighbour coherence, producing advisory outputs 10–15 minutes ahead of an observed collapse.
 - **Ethics**: Privacy-by-design under GDPR; per-sub-region fairness monitoring; calibrated alerts with human-in-the-loop authority; audit-log-backed transparency (IEEE, 2019).
 - **Contribution**: A single unified pipeline that couples SOTA spatio-temporal forecasting with an interpretable safety layer, sitting on the two most widely used ITS benchmarks.
@@ -116,7 +136,27 @@ python3 evaluate.py --config configs/dcrnn_metr_la.yaml
 python3 demo.py     --config configs/dcrnn_metr_la.yaml   # forward pass + safety alert
 ```
 
-### 5.3 Notes on data
+### 5.3 Generating report figures
+
+Two scripts are provided for producing report-quality figures:
+
+```bash
+cd code
+
+# Basic figures (training curve, time series, horizon metrics, scatter, residuals,
+# risk heatmap, speed distribution) — saves to ../figures/fig1_*.png ... fig7_*.png
+python3 plot_results.py --config configs/dcrnn_metr_la_cpu.yaml \
+                        --checkpoint ckpt/best.pt --output-dir ../figures \
+                        --log-csv train_log.csv
+
+# Detailed figures (univariate analysis, bivariate analysis, elbow & silhouette,
+# cluster PCA, model comparison, extended residual analysis) — each a 6-subplot
+# composition at 300 DPI
+python3 generate_report_figures.py --config configs/dcrnn_metr_la_cpu.yaml \
+                                   --checkpoint ckpt/best.pt --output-dir ../figures
+```
+
+### 5.4 Notes on data
 - No real METR-LA / PEMS-BAY archives are shipped or downloaded. `data/mock_data_loader.py` synthesises a deterministic small dataset that matches the shape of METR-LA. Benchmark comparisons in the report cite the published values only.
 
 ---

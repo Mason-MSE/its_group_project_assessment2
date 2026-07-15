@@ -36,9 +36,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from data.mock_data_loader import (
     build_mock_dataset,
-    build_features,
+    build_features as build_mock_features,
     make_sequences,
     train_val_test_split,
+)
+from data.real_data_loader import (
+    load_real_dataset,
+    build_features as build_real_features,
+    train_val_test_split as real_split,
+    make_sequences as real_sequences,
 )
 from data.preprocessing import (
     build_adjacency_matrix,
@@ -68,8 +74,13 @@ def main() -> None:
     parser.add_argument("--config", type=str, default="configs/dcrnn_metr_la.yaml")
     parser.add_argument("--epochs", type=int, default=None,
                         help="Override the number of epochs.")
-    parser.add_argument("--mock", action="store_true", default=True,
-                        help="Use the synthetic dataset instead of METR-LA.")
+    parser.add_argument("--dataset", type=str, default="mock",
+                        choices=["mock", "metr-la", "pems-bay"],
+                        help="Dataset to use (mock=synthetic, metr-la, pems-bay).")
+    parser.add_argument("--log-csv", type=str, default=None,
+                        help="Path to save training log CSV (epoch, train_loss, val_mae).")
+    parser.add_argument("--dataset-dir", type=str, default="dataset",
+                        help="Directory containing the dataset files.")
     args = parser.parse_args()
 
     with open(args.config, "r") as f:
@@ -80,25 +91,50 @@ def main() -> None:
     print(f"[train] Device: {device}")
 
     # --- data ---------------------------------------------------------------
-    ds = build_mock_dataset(
-        num_sensors=cfg["data"]["num_sensors"],
-        num_steps=24 * 12 * 7,  # a week for demo purposes
-        seed=cfg["training"]["seed"],
-    )
-    features = build_features(ds)
-    train_f, val_f, test_f = train_val_test_split(
-        features,
-        (cfg["data"]["train_ratio"], cfg["data"]["val_ratio"], cfg["data"]["test_ratio"]),
-    )
-    scaler = fit_scaler(train_f)
-    train_scaled = train_f.copy(); train_scaled[..., 0] = scaler.transform(train_f[..., 0])
-    val_scaled = val_f.copy(); val_scaled[..., 0] = scaler.transform(val_f[..., 0])
-    test_scaled = test_f.copy(); test_scaled[..., 0] = scaler.transform(test_f[..., 0])
-
     seq_len = cfg["data"]["seq_len"]; horizon = cfg["data"]["horizon"]
-    x_train, y_train = make_sequences(train_scaled, seq_len, horizon)
-    x_val, y_val = make_sequences(val_scaled, seq_len, horizon)
-    x_test, y_test = make_sequences(test_scaled, seq_len, horizon)
+
+    if args.dataset == "mock":
+        ds = build_mock_dataset(
+            num_sensors=cfg["data"]["num_sensors"],
+            num_steps=24 * 12 * 7,
+            seed=cfg["training"]["seed"],
+        )
+        features = build_mock_features(ds)
+        train_f, val_f, test_f = train_val_test_split(
+            features,
+            (cfg["data"]["train_ratio"], cfg["data"]["val_ratio"], cfg["data"]["test_ratio"]),
+        )
+        scaler = fit_scaler(train_f)
+        train_scaled = train_f.copy(); train_scaled[..., 0] = scaler.transform(train_f[..., 0])
+        val_scaled = val_f.copy(); val_scaled[..., 0] = scaler.transform(val_f[..., 0])
+        test_scaled = test_f.copy(); test_scaled[..., 0] = scaler.transform(test_f[..., 0])
+
+        x_train, y_train = make_sequences(train_scaled, seq_len, horizon)
+        x_val, y_val = make_sequences(val_scaled, seq_len, horizon)
+        x_test, y_test = make_sequences(test_scaled, seq_len, horizon)
+
+        adj = build_adjacency_matrix(
+            ds.distance,
+            sigma=cfg["data"]["adj_sigma"],
+            threshold=cfg["data"]["adj_threshold"],
+        )
+    else:
+        ds = load_real_dataset(args.dataset, args.dataset_dir)
+        features = build_real_features(ds.speed, ds.time_of_day)
+        train_f, val_f, test_f = real_split(
+            features,
+            (cfg["data"]["train_ratio"], cfg["data"]["val_ratio"], cfg["data"]["test_ratio"]),
+        )
+        scaler = fit_scaler(train_f)
+        train_scaled = train_f.copy(); train_scaled[..., 0] = scaler.transform(train_f[..., 0])
+        val_scaled = val_f.copy(); val_scaled[..., 0] = scaler.transform(val_f[..., 0])
+        test_scaled = test_f.copy(); test_scaled[..., 0] = scaler.transform(test_f[..., 0])
+
+        x_train, y_train = real_sequences(train_scaled, seq_len, horizon)
+        x_val, y_val = real_sequences(val_scaled, seq_len, horizon)
+        x_test, y_test = real_sequences(test_scaled, seq_len, horizon)
+
+        adj = ds.adjacency
 
     train_loader = DataLoader(
         TensorDataset(torch.from_numpy(x_train), torch.from_numpy(y_train)),
@@ -111,11 +147,6 @@ def main() -> None:
     )
 
     # --- adjacency ----------------------------------------------------------
-    adj = build_adjacency_matrix(
-        ds.distance,
-        sigma=cfg["data"]["adj_sigma"],
-        threshold=cfg["data"]["adj_threshold"],
-    )
     fwd, bwd = dual_random_walk_matrices(adj)
     supports = [torch.from_numpy(fwd).to(device), torch.from_numpy(bwd).to(device)]
 
@@ -136,6 +167,7 @@ def main() -> None:
     global_step = 0
     best_val = float("inf")
 
+    log_rows = []
     os.makedirs("ckpt", exist_ok=True)
     for epoch in range(epochs):
         model.train()
@@ -162,6 +194,7 @@ def main() -> None:
                 n_val += 1
         val_avg = val_loss / max(1, n_val)
         print(f"[train] Epoch {epoch + 1:03d}/{epochs}  train_loss={avg:.4f}  val_mae={val_avg:.4f}")
+        log_rows.append((epoch + 1, avg, val_avg))
 
         if val_avg < best_val:
             best_val = val_avg
@@ -170,6 +203,13 @@ def main() -> None:
                         "ckpt/best.pt")
 
     print(f"[train] Best val MAE: {best_val:.4f}")
+
+    if args.log_csv:
+        with open(args.log_csv, "w") as f:
+            f.write("epoch,train_loss,val_mae\n")
+            for ep, tl, vm in log_rows:
+                f.write(f"{ep},{tl:.6f},{vm:.6f}\n")
+        print(f"[train] Training log saved to {args.log_csv}")
 
     # --- final evaluation --------------------------------------------------
     x_test_t = torch.from_numpy(x_test).to(device)

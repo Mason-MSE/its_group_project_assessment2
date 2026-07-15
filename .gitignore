@@ -8,3 +8,11 @@ venv/
 *.egg-info/
 dist/
 build/
+
+# Dataset files (too large to commit)
+code/dataset/
+code/data/real_data_loader.py
+code/train_output.log
+
+# OS temp files
+~$*.docx
